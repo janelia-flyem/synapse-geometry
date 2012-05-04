@@ -45,11 +45,11 @@ def get_box(a, coords, margin):
     return a[box].copy()
 
 
-def raveler_synapse_annotations_to_coords(fn):
+def raveler_synapse_annotations_to_coords(fn, resolution=10):
     """Obtain pre- and post-synaptic coordinates from Raveler annotations."""
     with open(fn, 'r') as f:
-        syn = json.load(f)
-    tbars = [np.array(s['location']) for s in syn]
+        syn = json.load(f)['data']
+    tbars = [np.array(s['T-bar']['location']) for s in syn]
     posts = [np.array([p['location'] for p in s['partners']]) for s in syn]
     return [np.concatenate((t[np.newaxis, :], p), axis=0)
                                         for t, p in zip(tbars, posts)]
