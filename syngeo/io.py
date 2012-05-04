@@ -1,5 +1,6 @@
 # stardard library
 import sys, os
+import json
 
 # external libraries
 import numpy as np
@@ -16,11 +17,15 @@ def write_synapse_to_vtk(neurons, coords, fn, im=None, t=(2,0,1), s=(1,-1,1),
     post-synaptic sites (fly neurons are polyadic) and m = neurons.ndim, the
     number of dimensions of the image.
     """
-    neuron_ids = neurons[zip(*(coords[:,t]*s))]
+    coords = coords[:, t]*s
+    neuron_ids = neurons[zip(*coords)]
+    mean_coords = coords.mean(axis=0).astype(np.uint)
+    neurons = get_box(neurons, mean_coords, margin)
     synapse_volume = reduce(add_anything, 
         [(i+1)*(neurons==j) for i, j in enumerate(neuron_ids)])
     imio.write_vtk(synapse_volume, fn)
     if im is not None:
+        im = get_box(im, mean_coords, margin)
         imio.write_vtk(im, 
             os.path.join(os.path.dirname(fn), 'image.' + os.path.basename(fn)))
 
@@ -29,6 +34,8 @@ def get_box(a, coords, margin):
 
     Boxes close to the boundary are trimmed accordingly.
     """
+    if margin is None:
+        return a
     coords = np.array(coords)[np.newaxis, :]
     origin = np.zeros(coords.shape, dtype=int)
     shape = np.array(a.shape)[np.newaxis, :]
@@ -36,3 +43,27 @@ def get_box(a, coords, margin):
     bottomright = np.concatenate((coords+margin+1, shape), axis=0).min(axis=0)
     box = [slice(top, bottom) for top, bottom in zip(topleft, bottomright)]
     return a[box].copy()
+
+
+def raveler_synapse_annotations_to_coords(fn):
+    """Obtain pre- and post-synaptic coordinates from Raveler annotations."""
+    with open(fn, 'r') as f:
+        syn = json.load(f)
+    tbars = [np.array(s['location']) for s in syn]
+    posts = [np.array([p['location'] for p in s['partners']]) for s in syn]
+    return [np.concatenate((t[np.newaxis, :], p), axis=0)
+                                        for t, p in zip(tbars, posts)]
+
+def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, t=(2,0,1), 
+        s=(1,-1,1), margin=None, single_pairs=True):
+    for i, coords in enumerate(list_of_coords):
+        if single_pairs:
+            pre = coords[0]
+            for j, post in enumerate(coords[1:]):
+                pair_coords = np.concatenate(
+                    (pre[np.newaxis, :], post[np.newaxis, :]), axis=0)
+                fn = fn%(i, j)
+                write_synapse_to_vtk(neurons, pair_coords, fn, im, t, s, margin)
+        else:
+            fn = fn%i
+            write_synapse_to_vtk(neurons, coords, fn, im, t, s, margin)
