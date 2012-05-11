@@ -29,6 +29,10 @@ def write_synapse_to_vtk(neurons, coords, fn, im=None, t=(2,0,1), s=(1,-1,1),
         imio.write_vtk(im, 
             os.path.join(os.path.dirname(fn), 'image.' + os.path.basename(fn)))
 
+def all_postsynaptic_sites(synapses):
+    tbars, posts = zip(*synapses)
+    return list(it.chain(*posts))
+
 def get_box(a, coords, margin):
     """Obtain a box of size 2*margin+1 around coords in array a.
 
@@ -44,14 +48,29 @@ def get_box(a, coords, margin):
     box = [slice(top, bottom) for top, bottom in zip(topleft, bottomright)]
     return a[box].copy()
 
+def synapses_from_raveler_session_data(fn):
+    with open(fn) as f:
+        d = pck.load(f)
+    annots = d['annotations']['point']
+    tbars = [a for a in annots if annots[a]['kind'] == 'T-bar']
+    posts = [annots[a] for a in tbars]
+    posts = [eval(p['value'].replace('false', 'False').replace('true', 'True'))
+             for p in posts]
+    posts = [p['partners'] for p in posts]
+    posts = [map(lambda x: x[0], p) for p in posts]
+    return zip(tbars, posts)
 
-def raveler_synapse_annotations_to_coords(fn):
+
+def raveler_synapse_annotations_to_coords(fn, output_format='pairs'):
     """Obtain pre- and post-synaptic coordinates from Raveler annotations."""
     with open(fn, 'r') as f:
         syn = json.load(f)
     tbars = [np.array(s['location']) for s in syn]
     posts = [np.array([p['location'] for p in s['partners']]) for s in syn]
-    return [np.concatenate((t[np.newaxis, :], p), axis=0)
+    if output_format == 'pairs':
+        return zip(tbars, posts)
+    elif output_format == 'arrays':
+        return [np.concatenate((t[np.newaxis, :], p), axis=0)
                                         for t, p in zip(tbars, posts)]
 
 def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, t=(2,0,1), 
@@ -59,7 +78,7 @@ def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, t=(2,0,1),
     for i, coords in enumerate(list_of_coords):
         if single_pairs:
             pre = coords[0]
-            for j, post in enumerate(coords[1:]):
+            for j, post in enumerate(coords[1]):
                 pair_coords = np.concatenate(
                     (pre[np.newaxis, :], post[np.newaxis, :]), axis=0)
                 fn = fn%(i, j)
