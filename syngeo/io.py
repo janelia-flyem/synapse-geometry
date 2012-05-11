@@ -64,8 +64,8 @@ def synapses_from_raveler_session_data(fn):
 def raveler_synapse_annotations_to_coords(fn, output_format='pairs'):
     """Obtain pre- and post-synaptic coordinates from Raveler annotations."""
     with open(fn, 'r') as f:
-        syn = json.load(f)
-    tbars = [np.array(s['location']) for s in syn]
+        syn = json.load(f)['data']
+    tbars = [np.array(s['T-bar']['location']) for s in syn]
     posts = [np.array([p['location'] for p in s['partners']]) for s in syn]
     if output_format == 'pairs':
         return zip(tbars, posts)
