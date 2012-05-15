@@ -17,7 +17,7 @@ from ray import imio
 from syngeo import io
 
 # "constants"
-pat_session_data = '/groups/flyem/data/temp/temp session/noise/rivlinp.20120508.noise1_0_ground_truth/sessiondata'
+pat_session_data = '/groups/flyem/data/temp/temp-session/noise/rivlinp.20120508.noise1_0_ground_truth/sessiondata'
 proofreaders = ['roxanne', 'leiann', 'shirley', 'ashley', 'omotara', 'mat', 'chris', 'satoko', 'steve', 'shinya', 'juan']
 ress = ['5nm', '7.5nm', '10nm', '15nm']
 noise_levels = [0, 1, 2, 4, 8, 16]
