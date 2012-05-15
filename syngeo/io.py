@@ -1,6 +1,7 @@
 # stardard library
 import sys, os
 import json
+import cPickle as pck
 
 # external libraries
 import numpy as np
@@ -46,7 +47,14 @@ def get_box(a, coords, margin):
     box = [slice(top, bottom) for top, bottom in zip(topleft, bottomright)]
     return a[box].copy()
 
-def synapses_from_raveler_session_data(fn):
+def tbar_post_pairs_to_arrays(pairs):
+    return [np.concatenate((t[np.newaxis, :], p), axis=0) for t, p in pairs]
+
+def synapses_from_raveler_session_data(fn, output_format='pairs', 
+                                    t=(2, 1, 0), s=(1, -1, 1), transform=True):
+    if not transform:
+        t = (0, 1, 2)
+        s = (1, 1, 1)
     with open(fn) as f:
         d = pck.load(f)
     annots = d['annotations']['point']
@@ -56,11 +64,16 @@ def synapses_from_raveler_session_data(fn):
              for p in posts]
     posts = [p['partners'] for p in posts]
     posts = [map(lambda x: x[0], p) for p in posts]
-    return zip(tbars, posts)
-
+    tbars = [np.array(tbar)[np.array(t)]*s for tbar in tbars]
+    posts = [np.array(post)[:, t] * s for post in posts]
+    pairs = zip(tbars, posts)
+    if output_format == 'pairs':
+        return pairs
+    elif output_format == 'arrays':
+        return tbar_post_pairs_to_arrays(pairs)
 
 def raveler_synapse_annotations_to_coords(fn, output_format='pairs',
-                                    t=(2,0,1), s=(1,-1,1), transform=True):
+                                    t=(2, 1, 0), s=(1, -1, 1), transform=True):
     """Obtain pre- and post-synaptic coordinates from Raveler annotations."""
     if not transform:
         t = (0, 1, 2)
@@ -70,13 +83,13 @@ def raveler_synapse_annotations_to_coords(fn, output_format='pairs',
     tbars = [np.array(syn['T-bar']['location'])[:, t]*s for syn in syns]
     posts = [np.array([p['location'] for p in syn['partners']])[:, t]*s 
         for syn in syns]
+    pairs = zip(tbars, posts)
     if output_format == 'pairs':
-        return zip(tbars, posts)
+        return pairs
     elif output_format == 'arrays':
-        return [np.concatenate((t[np.newaxis, :], p), axis=0)
-                                        for t, p in zip(tbars, posts)]
+        return tbar_post_pairs_to_arrays(pairs)
 
-def raveler_to_numpy_coord_transform(coords, t=(2, 0, 1), s=(1, -1, 1)):
+def raveler_to_numpy_coord_transform(coords, t=(2, 1, 0), s=(1, -1, 1)):
     coords = np.array(coords)
     return coords[:, t]*s
 
