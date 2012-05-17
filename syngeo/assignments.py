@@ -12,13 +12,14 @@ from functools import partial
 # external libraries
 import numpy as np
 from ray import imio
+from scipy import spatial
 
 # local modules
 from syngeo import io
 
 # "constants"
 pat_session_data = '/groups/flyem/data/temp/temp-session/noise/rivlinp.20120508.noise1_0_ground_truth/sessiondata'
-proofreaders = ['roxanne', 'leiann', 'shirley', 'ashley', 'omotara', 'mat', 'chris', 'satoko', 'steve', 'shinya', 'juan']
+proofreaders = ['roxanne', 'leiann', 'shirley', 'ashley', 'omotara', 'mat', 'chris', 'satoko']
 ress = ['5nm', '7.5nm', '10nm', '15nm']
 noise_levels = [0, 1, 2, 4, 8, 16]
 d = '/groups/flyem/data/image_analysis_experiment/assignments'
@@ -46,6 +47,31 @@ def stratified_slices(total, nslices):
         starts = range(0, switch, size_l) + range(switch, total, size_s)
         ends = range(size_l, switch, size_l) + range(switch, total+1, size_s)
     return [slice(s, e) for s, e in zip(starts, ends)]
+
+def get_bookmark_distances(bookmarks):
+    return [(nid, spatial.distance.euclidean(loc1, loc2)) 
+        for nid, loc1, loc2 in bookmarks]
+
+def bookmark_coords(fn, scale=1.0, transform=True):
+    """Return triples of (bookmark-id, start-coord, end-coord)."""
+    bookmarks = {}
+    with open(fn, 'r') as f: data = json.load(f)['data']
+    for textid, location in sorted([(d['text'], 
+            scale * io.raveler_to_numpy_coord_transform(d['location']))
+            for d in data]):
+        if textid.endswith('-start'):
+            nid = int(textid.split('-')[0])
+            if bookmarks.has_key(nid):
+                bookmarks[nid].insert(0, location)
+            else:
+                bookmarks[nid] = [location]
+        else:
+            nid = int(textid.rstrip('?'))
+            if bookmarks.has_key(nid):
+                bookmarks[nid].append(location)
+            else:
+                bookmarks[nid] = [location]
+    return [(nid, loc1, loc2) for nid, (loc1, loc2) in bookmarks.items()]
 
 parser = argparse.ArgumentParser(
     description='Create synapse tracing assignments for proofreaders.')
