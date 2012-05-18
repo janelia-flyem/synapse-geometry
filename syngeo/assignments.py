@@ -8,6 +8,7 @@ import cPickle as pck
 import itertools as it
 from operator import __or__, __not__
 from functools import partial
+import fnmatch
 
 # external libraries
 import numpy as np
@@ -47,6 +48,13 @@ def stratified_slices(total, nslices):
         starts = range(0, switch, size_l) + range(switch, total, size_s)
         ends = range(size_l, switch, size_l) + range(switch, total+1, size_s)
     return [slice(s, e) for s, e in zip(starts, ends)]
+
+def proofreader_stack_to_resolution(assign_dir, proofreader, stack_num_str, 
+                                                        prefix='postsyn'):
+    d = os.path.join(assign_dir, proofreader)
+    fn = fnmatch.filter(os.listdir(d), prefix+'-'+stack_num_str+'-*.json')[0]
+    fnsplit = fn.rsplit('.', 1)[0].split('-')
+    return float(fnsplit[3].rstrip('unm')), int(fnsplit[5])
 
 def get_bookmark_distances(bookmarks):
     return [(nid, spatial.distance.euclidean(loc1, loc2)) 
