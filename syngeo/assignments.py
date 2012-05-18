@@ -49,6 +49,47 @@ def stratified_slices(total, nslices):
         ends = range(size_l, switch, size_l) + range(switch, total+1, size_s)
     return [slice(s, e) for s, e in zip(starts, ends)]
 
+def tracing_accuracy_matrix(base_dir, gt_vol, proofreaders=proofreaders, 
+                nposts=161, assign_dir='assignments', exports_dir='exports'):
+    """Return synapse-tracing accuracy statistics.
+
+    Note: assume all proofreaders have same set of assignments.
+    """
+    assign_dir = os.path.join(base_dir, assign_dir)
+    num_conds = len(os.listdir(os.path.join(assign_dir, proofreaders[0])))
+    conds = [
+        proofreader_stack_to_resolution(assign_dir, proofreaders[0], '%02i'%c)
+        for c in range(num_conds)]
+    ress = np.unique(zip(*conds)[0])
+    noises = np.unique(zip(*conds)[1])
+    acc = np.zeros((nposts, len(proofreaders), len(ress), len(noises), 2))
+    all_coords = []
+    for c in range(num_conds):
+        for p, prf in enumerate(proofreaders):
+            r, n = proofreader_stack_to_resolution(assign_dir, prf, '%02i'%c)
+            ri, ni = np.flatnonzero(r==ress), np.flatnonzero(n==noises)
+            fn = os.path.join(base_dir, exports_dir, prf, '%02i'%c, 
+                'annotations-bookmarks.json')
+            coords = bookmark_coords(fn, r/10.0)
+            all_coords.extend(coords)
+            ids, starts, ends = map(compose(np.floor, np.array), zip(*coords))
+            ids = ids.astype(int)
+            for i in range(starts.ndim):
+                if starts[0, i] < 0:
+                    starts[:, i] += gt_vol.shape[i]
+                    ends[:, i] += gt_vol.shape[i]
+            startsr = np.ravel_multi_index(starts.T.astype(int), gt_vol.shape)
+            endsr = np.ravel_multi_index(ends.T.astype(int), gt_vol.shape)
+            acc[ids, p, ri, ni, 1] += 1
+            start_ids = gt_vol.ravel()[startsr]
+            end_ids = gt_vol.ravel()[endsr]
+            if (ids == 157).sum() > 0:
+                start_ids[np.flatnonzero(ids==157)] = 277078
+            correct = np.flatnonzero(start_ids == end_ids)
+            acc[ids[correct], p, ri, ni, 0] += 1
+    return acc, all_coords
+
+
 def proofreader_stack_to_resolution(assign_dir, proofreader, stack_num_str, 
                                                         prefix='postsyn'):
     d = os.path.join(assign_dir, proofreader)
