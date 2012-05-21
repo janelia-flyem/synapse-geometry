@@ -64,13 +64,14 @@ def tracing_accuracy_matrix(base_dir, gt_vol, proofreaders=proofreaders,
     noises = np.unique(zip(*conds)[1])
     acc = np.zeros((nposts, len(proofreaders), len(ress), len(noises), 2))
     all_coords = []
+    unc = np.zeros((nposts, len(proofreaders), len(ress), len(noises)))
     for c in range(num_conds):
         for p, prf in enumerate(proofreaders):
             r, n = proofreader_stack_to_resolution(assign_dir, prf, '%02i'%c)
             ri, ni = np.flatnonzero(r==ress), np.flatnonzero(n==noises)
             fn = os.path.join(base_dir, exports_dir, prf, '%02i'%c, 
                 'annotations-bookmarks.json')
-            coords = bookmark_coords(fn, r/10.0)
+            coords, uncertain = bookmark_coords(fn, r/10.0)
             all_coords.extend(coords)
             ids, starts, ends = map(compose(np.floor, np.array), zip(*coords))
             ids = ids.astype(int)
@@ -87,7 +88,8 @@ def tracing_accuracy_matrix(base_dir, gt_vol, proofreaders=proofreaders,
                 start_ids[np.flatnonzero(ids==157)] = 277078
             correct = np.flatnonzero(start_ids == end_ids)
             acc[ids[correct], p, ri, ni, 0] += 1
-    return acc, all_coords
+            unc[uncertain, p, ri, ni] += 1
+    return acc, all_coords, unc
 
 
 def proofreader_stack_to_resolution(assign_dir, proofreader, stack_num_str, 
@@ -104,6 +106,7 @@ def get_bookmark_distances(bookmarks):
 def bookmark_coords(fn, scale=1.0, transform=True):
     """Return triples of (bookmark-id, start-coord, end-coord)."""
     bookmarks = {}
+    uncertain = []
     with open(fn, 'r') as f: data = json.load(f)['data']
     for textid, location in sorted([(d['text'], 
             scale * io.raveler_to_numpy_coord_transform(d['location']))
@@ -120,7 +123,10 @@ def bookmark_coords(fn, scale=1.0, transform=True):
                 bookmarks[nid].append(location)
             else:
                 bookmarks[nid] = [location]
-    return [(nid, loc1, loc2) for nid, (loc1, loc2) in bookmarks.items()]
+            if textid.endswith('?'):
+                uncertain.append(nid)
+    return [(nid, loc1, loc2) for nid, (loc1, loc2) in bookmarks.items()], \
+        uncertain
 
 parser = argparse.ArgumentParser(
     description='Create synapse tracing assignments for proofreaders.')
