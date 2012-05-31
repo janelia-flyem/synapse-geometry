@@ -1,3 +1,3 @@
-from . import io, assignments
+from . import io, assignments, wiring
 
-__all__ = ['io', 'assignments']
+__all__ = ['io', 'assignments', 'wiring']
