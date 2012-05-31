@@ -2,6 +2,7 @@
 import sys, os
 import json
 import cPickle as pck
+import itertools as it
 
 # external libraries
 import numpy as np
@@ -28,6 +29,9 @@ def write_synapse_to_vtk(neurons, coords, fn, im=None, margin=None):
         imio.write_vtk(im, 
             os.path.join(os.path.dirname(fn), 'image.' + os.path.basename(fn)))
 
+def all_sites(synapses):
+    return list(it.chain(*tbar_post_pairs_to_arrays(synapses)))
+
 def all_postsynaptic_sites(synapses):
     tbars, posts = zip(*synapses)
     return list(it.chain(*posts))
@@ -49,6 +53,14 @@ def get_box(a, coords, margin):
 
 def tbar_post_pairs_to_arrays(pairs):
     return [np.concatenate((t[np.newaxis, :], p), axis=0) for t, p in pairs]
+
+def volume_synapse_view(pairs, shape):
+    v = np.zeros(shape, int)
+    for i, (pre, post) in enumerate(pairs):
+        coords = np.concatenate((pre[np.newaxis, :], post), axis=0)
+        coords = [coords[:, j] for j in range(coords.shape[1])]
+        v[coords] = i+1
+    return v
 
 def synapses_from_raveler_session_data(fn, output_format='pairs', 
                                     t=(2, 1, 0), s=(1, -1, 1), transform=True):
