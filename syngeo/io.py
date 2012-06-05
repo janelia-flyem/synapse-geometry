@@ -23,7 +23,7 @@ def write_synapse_to_vtk(neurons, coords, fn, im=None, margin=None):
     neurons = get_box(neurons, mean_coords, margin)
     synapse_volume = reduce(add_anything, 
         [(i+1)*(neurons==j) for i, j in enumerate(neuron_ids)])
-    imio.write_vtk(synapse_volume, fn)
+    imio.write_vtk(synapse_volume.astype(np.uint8), fn)
     if im is not None:
         im = get_box(im, mean_coords, margin)
         imio.write_vtk(im, 
@@ -43,7 +43,7 @@ def get_box(a, coords, margin):
     """
     if margin is None:
         return a
-    coords = np.array(coords)[np.newaxis, :]
+    coords = np.array(coords)[np.newaxis, :].astype(int)
     origin = np.zeros(coords.shape, dtype=int)
     shape = np.array(a.shape)[np.newaxis, :]
     topleft = np.concatenate((coords-margin, origin), axis=0).max(axis=0)
@@ -110,11 +110,11 @@ def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, margin=None,
     for i, coords in enumerate(list_of_coords):
         if single_pairs:
             pre = coords[0]
-            for j, post in enumerate(coords[1]):
+            for j, post in enumerate(coords[1:]):
                 pair_coords = np.concatenate(
                     (pre[np.newaxis, :], post[np.newaxis, :]), axis=0)
-                fn = fn%(i, j)
-                write_synapse_to_vtk(neurons, pair_coords, fn, im, margin)
+                cfn = fn%(i, j)
+                write_synapse_to_vtk(neurons, pair_coords, cfn, im, margin)
         else:
-            fn = fn%i
-            write_synapse_to_vtk(neurons, coords, fn, im, margin)
+            cfn = fn%i
+            write_synapse_to_vtk(neurons, coords, cfn, im, margin)
