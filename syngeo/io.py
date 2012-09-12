@@ -76,8 +76,8 @@ def synapses_from_raveler_session_data(fn, output_format='pairs',
              for p in posts]
     posts = [p['partners'] for p in posts]
     posts = [map(lambda x: x[0], p) for p in posts]
-    tbars = [np.array(tbar)[np.array(t)]*s for tbar in tbars]
-    posts = [np.array(post)[:, t] * s for post in posts]
+    tbars = [coord_transform(tbar, t, s) for tbar in tbars]
+    posts = [coord_transform(post, t, s) for post in posts]
     pairs = zip(tbars, posts)
     if output_format == 'pairs':
         return pairs
@@ -92,18 +92,21 @@ def raveler_synapse_annotations_to_coords(fn, output_format='pairs',
         s = (1, 1, 1)
     with open(fn, 'r') as f:
         syns = json.load(f)['data']
-    tbars = [np.array(syn['T-bar']['location'])[:, t]*s for syn in syns]
-    posts = [np.array([p['location'] for p in syn['partners']])[:, t]*s 
-        for syn in syns]
+    tbars = [coord_transform(syn['T-bar']['location']), t, s) for syn in syns]
+    posts = [coord_transform([p['location'] for p in syn['partners']], t, s)
+            for syn in syns]
     pairs = zip(tbars, posts)
     if output_format == 'pairs':
         return pairs
     elif output_format == 'arrays':
         return tbar_post_pairs_to_arrays(pairs)
 
-def raveler_to_numpy_coord_transform(coords, t=(2, 1, 0), s=(1, -1, 1)):
+def coord_transform(coords, t=(2, 1, 0), s=(1, -1, 1)):
     coords = np.array(coords)
-    return coords[:, t]*s
+    if coords.ndim == 1:
+        coords = coords[np.newaxis, :]
+    s = np.array(s)
+    return coords[:, t]*s - (s == -1)
 
 def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, margin=None,
                                                             single_pairs=True):
