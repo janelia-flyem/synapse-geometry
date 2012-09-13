@@ -59,6 +59,9 @@ def volume_synapse_view(pairs, shape):
     for i, (pre, post) in enumerate(pairs):
         coords = np.concatenate((pre[np.newaxis, :], post), axis=0)
         coords = [coords[:, j] for j in range(coords.shape[1])]
+        for j in range(len(coords)):
+            if coords[j][0] < 0:
+                coords[j] = shape[j] + coords[j]
         v[coords] = i+1
     return v
 
@@ -103,10 +106,8 @@ def raveler_synapse_annotations_to_coords(fn, output_format='pairs',
 
 def coord_transform(coords, t=(2, 1, 0), s=(1, -1, 1)):
     coords = np.array(coords)
-    if coords.ndim == 1:
-        coords = coords[np.newaxis, :]
     s = np.array(s)
-    return coords[:, t]*s - (s == -1)
+    return coords[..., t]*s - (s == -1)
 
 def write_all_synapses_to_vtk(neurons, list_of_coords, fn, im, margin=None,
                                                             single_pairs=True):
