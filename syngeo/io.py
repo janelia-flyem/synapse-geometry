@@ -1,12 +1,12 @@
 # stardard library
-import sys, os
+import os
 import json
 import cPickle as pck
 import itertools as it
 
 # external libraries
 import numpy as np
-from ray import imio, evaluate, morpho
+from ray import imio
 
 def add_anything(a, b):
     return a + b
@@ -92,7 +92,7 @@ def raveler_synapse_annotations_to_coords(fn, output_format='pairs',
         s = (1, 1, 1)
     with open(fn, 'r') as f:
         syns = json.load(f)['data']
-    tbars = [coord_transform(syn['T-bar']['location']), t, s) for syn in syns]
+    tbars = [coord_transform(syn['T-bar']['location'], t, s) for syn in syns]
     posts = [coord_transform([p['location'] for p in syn['partners']], t, s)
             for syn in syns]
     pairs = zip(tbars, posts)
