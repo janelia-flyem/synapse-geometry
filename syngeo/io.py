@@ -6,7 +6,7 @@ import itertools as it
 
 # external libraries
 import numpy as np
-from ray import imio
+from gala import imio
 
 def add_anything(a, b):
     return a + b

@@ -1,4 +1,6 @@
 tmp/
+build/
+dist/
 data/
 cluster/
 *.pyc

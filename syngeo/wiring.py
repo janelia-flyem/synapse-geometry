@@ -6,7 +6,7 @@ import itertools as it
 
 # external libraries
 import numpy as np
-from ray import imio, evaluate, morpho
+from gala import imio, evaluate, morpho
 import networkx as nx
 
 def synapses_to_network(vol, syns):

@@ -12,7 +12,7 @@ import fnmatch
 
 # external libraries
 import numpy as np
-from ray import imio
+from gala import imio
 from scipy import spatial
 
 # local modules
