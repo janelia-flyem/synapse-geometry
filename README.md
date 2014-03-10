@@ -1,8 +1,9 @@
-# synapse-geometry: figure out stuff from synapse geometry in 3D data
+# synapse-geometry [![Picture](https://raw.github.com/janelia-flyem/janelia-flyem.github.com/master/images/gray_janelia_logo.png)](http://janelia.org/)
+## figure out stuff from synapse geometry in 3D data
 
 Synapse-geometry is a python library to work with neuroimaging data at 
-synapse-level resolution, distributed under the open-source 
-[MIT license](http://www.opensource.org/licenses/mit-license.php).
+synapse-level resolution. 
+Release is under the [Janelia Farm License](http://janelia-flyem.github.io/janelia_farm_license.html).
 
 ## Installation
 
